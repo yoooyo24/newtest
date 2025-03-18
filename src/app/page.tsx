@@ -5,6 +5,8 @@ import { Info, ArrowDown, UploadIcon, Clock, CircleAlert, ArrowRight } from "luc
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+// Import the loading component
+import TransformationLoading from "@/components/ui/TransformationLoading";
 
 export default function Home() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -14,6 +16,7 @@ export default function Home() {
   const [transformedImageUrl, setTransformedImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [debug, setDebug] = useState<string>("");
+  const [transformProgress, setTransformProgress] = useState<number>(0);
 
   // Add effect to log state changes
   useEffect(() => {
@@ -62,11 +65,21 @@ export default function Home() {
     }
   };
 
-  // For transforming
+  // Enhanced transform handler with progress indicator
   const handleTransform = async () => {
     if (!imageUrl || !prompt.trim()) return;
     
     setIsTransforming(true);
+    setTransformProgress(0);
+    
+    // Start progress simulation
+    const progressInterval = setInterval(() => {
+      setTransformProgress(prev => {
+        const next = prev + Math.random() * 15;
+        return next > 95 ? 95 : next; // Cap at 95% until actually done
+      });
+    }, 500);
+    
     try {
       const response = await fetch('/api/transform', {
         method: 'POST',
@@ -79,7 +92,7 @@ export default function Home() {
       const data = await response.json();
       if (data.success && data.transformedImageUrl) {
         setTransformedImageUrl(data.transformedImageUrl);
-        // Handle successful transformation
+        setTransformProgress(100);
       } else {
         console.error('Transformation failed:', data.error);
         // Handle error
@@ -88,7 +101,11 @@ export default function Home() {
       console.error('Error transforming image:', error);
       // Handle error
     } finally {
-      setIsTransforming(false);
+      clearInterval(progressInterval);
+      // Set a minimum display time for the loading screen for better UX
+      setTimeout(() => {
+        setIsTransforming(false);
+      }, 1000);
     }
   };
 
@@ -153,6 +170,9 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Add the loading overlay when transforming */}
+      {isTransforming && <TransformationLoading progress={transformProgress} />}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
         {/* Debug panel - add this for troubleshooting */}
         <div className="mb-8 p-4 bg-gray-800 rounded-md">
@@ -213,7 +233,7 @@ export default function Home() {
                     <div className="uploaded-image-container">
                       <h3 className="text-white mb-4">Uploaded Image:</h3>
                       
-                      {/* Very simple image display */}
+                      {/* Very simple image display with fixed fallback */}
                       <div className="border border-blue-500 p-2 mb-4">
                         <img 
                           src={imageUrl} 
@@ -222,7 +242,8 @@ export default function Home() {
                           onError={(e) => {
                             console.error("Image failed to load");
                             setDebug(prev => `${prev}\nImage failed to load from URL: ${imageUrl}`);
-                            e.currentTarget.src = "https://via.placeholder.com/400x300?text=Image+Load+Error";
+                            // Use a local image instead of an external placeholder
+                            e.currentTarget.src = "/error-placeholder.jpg";
                           }}
                         />
                       </div>
@@ -407,9 +428,13 @@ export default function Home() {
                   <div>
                     <h3 className="font-medium text-lg text-white mb-3">Original Image</h3>
                     <div className="relative w-full h-64 bg-gray-800 rounded-md overflow-hidden">
-                      {imageUrl.startsWith('https://example.com') ? (
+                      {/* Update the condition to check for local URLs too */}
+                      {imageUrl.startsWith('https://example.com') || imageUrl.startsWith('/placeholder-') ? (
                         <div className="flex items-center justify-center h-full bg-gray-800 text-white">
-                          <p className="text-center">Original Image</p>
+                          <div className="text-center">
+                            <p className="text-lg font-medium">Mock Original Image</p>
+                            <p className="text-sm text-gray-400">(Placeholder for demo purposes)</p>
+                          </div>
                         </div>
                       ) : (
                         <div className="w-full h-full relative">
@@ -417,6 +442,9 @@ export default function Home() {
                             src={imageUrl}
                             alt="Original image" 
                             className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.src = "/error-placeholder.jpg";
+                            }}
                           />
                         </div>
                       )}
