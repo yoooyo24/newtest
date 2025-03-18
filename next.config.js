@@ -11,6 +11,7 @@ const nextConfig = {
       "images.unsplash.com",
       "ext.same-assets.com",
       "ugc.same-assets.com",
+      "example.com" // Add this to allow mocked image URLs
     ],
     remotePatterns: [
       {
