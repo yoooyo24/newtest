@@ -24,10 +24,11 @@ export async function POST(request: Request) {
       enhancedPrompt: `Enhanced: ${prompt}`
     });
     
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     console.error('Error transforming image:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { error: 'Error transforming image', details: error.message }, 
+      { error: 'Error transforming image', details: errorMessage }, 
       { status: 500 }
     );
   }
