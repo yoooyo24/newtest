@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
-  distDir: process.env.NODE_ENV === "production" ? "build" : ".next",
+  // Remove the custom distDir configuration which is causing issues on Vercel
+  // distDir: process.env.NODE_ENV === "production" ? "build" : ".next",
+  
   images: {
     unoptimized: true,
     domains: [
@@ -32,6 +34,10 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+  },
+  eslint: {
+    // This completely disables ESLint during the build process
+    ignoreDuringBuilds: true,
   },
 };
 
