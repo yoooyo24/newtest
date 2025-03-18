@@ -21,10 +21,11 @@ export async function POST(request: Request) {
       imageUrl 
     });
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error handling file upload:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { error: 'Error uploading file', details: error.message }, 
+      { error: 'Error uploading file', details: errorMessage }, 
       { status: 500 }
     );
   }
