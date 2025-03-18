@@ -11,7 +11,7 @@ export function Header() {
               <div className="bg-blue-600 text-white p-1 sm:p-1.5 rounded-md group-hover:bg-blue-500 transition-colors">
                 <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <h1 className="ml-2 text-xl sm:text-2xl font-bold text-white">lofipixel</h1>
+              <h1 className="ml-2 text-xl sm:text-2xl font-bold text-white">ben-imagetransformapp</h1>
             </Link>
             <div className="ml-2 sm:ml-3 px-1.5 sm:px-2 py-0.5 bg-blue-900 rounded-full">
               <p className="text-xs font-medium text-blue-300">Beta</p>
