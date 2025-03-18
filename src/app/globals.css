@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 214 68% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 213 48% 28%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 215 27% 16%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 214 68% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 214 68% 42%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .upload-area {
+    @apply border-3 border-dashed rounded-lg p-4 sm:p-10 text-center cursor-pointer transition-colors border-blue-400 hover:border-blue-500 bg-gray-800 bg-opacity-50 flex flex-col items-center justify-center gap-2 sm:gap-3;
+  }
+
+  .blue-badge {
+    @apply px-1.5 sm:px-2 py-0.5 bg-blue-900 rounded-full text-xs font-medium text-blue-300;
+  }
+
+  .blue-container {
+    @apply bg-blue-900 bg-opacity-30 border border-blue-800 rounded-lg p-3;
+  }
+
+  .step-number {
+    @apply w-10 h-10 bg-blue-900 rounded-full flex items-center justify-center text-blue-300 font-bold mx-auto mb-4 text-lg border border-blue-700;
+  }
+}
