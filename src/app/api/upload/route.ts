@@ -12,9 +12,12 @@ export async function POST(request: Request) {
       );
     }
     
-    // Simulate upload by returning a mock URL
-    const randomId = Math.random().toString(36).substring(2, 15);
-    const imageUrl = `https://example.com/uploads/${randomId}.jpg`;
+    // Guaranteed working image URL - using placeholder.com instead of unsplash 
+    // to avoid any potential CORS or availability issues
+    const randomId = Math.floor(Math.random() * 1000);
+    const imageUrl = `https://via.placeholder.com/800x600?text=Image+${randomId}`;
+    
+    console.log('Returning mock image URL:', imageUrl);
     
     return NextResponse.json({ 
       success: true,

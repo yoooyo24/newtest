@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, ChangeEvent } from "react";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { Info, ArrowDown, UploadIcon, Clock, CircleAlert, ArrowRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function Home() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -12,13 +13,22 @@ export default function Home() {
   const [isTransforming, setIsTransforming] = useState<boolean>(false);
   const [transformedImageUrl, setTransformedImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [debug, setDebug] = useState<string>("");
 
-  // For uploading
+  // Add effect to log state changes
+  useEffect(() => {
+    console.log('State updated - imageUrl:', imageUrl);
+  }, [imageUrl]);
+
+  // Enhanced upload handler with more debugging
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
+    setDebug(`Starting upload of ${file.name} (${file.size} bytes)`);
     try {
       const formData = new FormData();
       formData.append('image', file);
+      
+      console.log('Uploading image:', file.name, file.size);
       
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -26,15 +36,27 @@ export default function Home() {
       });
       
       const data = await response.json();
+      console.log('Upload API response:', data);
+      setDebug(prev => `${prev}\nAPI response: ${JSON.stringify(data)}`);
+      
       if (data.success && data.imageUrl) {
+        console.log('Setting image URL:', data.imageUrl);
         setImageUrl(data.imageUrl);
+        setDebug(prev => `${prev}\nImage URL set: ${data.imageUrl}`);
+        
+        // Force refresh component
+        setTimeout(() => {
+          console.log('Forced refresh - current imageUrl:', data.imageUrl);
+        }, 100);
       } else {
         console.error('Upload failed:', data.error);
-        // Handle error
+        setDebug(prev => `${prev}\nUpload failed: ${data.error || 'Unknown error'}`);
+        alert('Failed to upload image: ' + (data.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      // Handle error
+      setDebug(prev => `${prev}\nError: ${error}`);
+      alert('Error uploading image. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -132,6 +154,16 @@ export default function Home() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+        {/* Debug panel - add this for troubleshooting */}
+        <div className="mb-8 p-4 bg-gray-800 rounded-md">
+          <h3 className="text-white font-medium mb-2">Debug Info:</h3>
+          <div className="bg-black p-3 rounded text-green-400 font-mono text-sm">
+            <p>Image URL: {imageUrl || 'none'}</p>
+            <p>Upload state: {isUploading ? 'Uploading...' : 'Idle'}</p>
+            <pre className="whitespace-pre-wrap">{debug}</pre>
+          </div>
+        </div>
+        
         <div className="space-y-16">
           <section className="relative">
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium z-10">
@@ -141,36 +173,85 @@ export default function Home() {
               <div className="w-full max-w-6xl mx-auto bg-gray-900 rounded-lg shadow-lg border border-gray-800 overflow-hidden">
                 <div className="p-4 sm:p-6 border-b border-gray-800">
                   <h2 className="text-lg sm:text-xl font-bold text-white">Transform your image</h2>
+                  {imageUrl && (
+                    <div className="mt-2 text-sm text-blue-400">
+                      Image URL: {imageUrl.substring(0, 50)}...
+                    </div>
+                  )}
                 </div>
                 <div className="p-4 sm:p-6">
-                  <div className="upload-area">
-                    {/* Hidden file input */}
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/jpeg,image/png,image/gif"
-                      className="hidden"
-                    />
-                    <UploadIcon className="h-12 w-12 sm:h-16 sm:w-16 text-blue-400 animate-pulse" />
-                    <p className="text-xl sm:text-2xl font-medium text-white">DROP IMAGE HERE</p>
-                    <Button 
-                      className="mt-2 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer flex items-center justify-center"
-                      onClick={handleFileButtonClick}
-                      disabled={isUploading}
-                    >
-                      {isUploading ? 'Uploading...' : 'or click to browse files'}
-                    </Button>
-                    <p className="text-sm sm:text-base text-gray-400 mt-3 sm:mt-4">
-                      Supports: JPG, PNG, GIF (max 2MB)
-                    </p>
-                    <div className="mt-2 sm:mt-3 text-sm sm:text-base text-amber-400 bg-amber-900 bg-opacity-30 p-2 sm:p-3 rounded-md flex items-start">
-                      <CircleAlert className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0 mt-0.5" />
-                      <p className="text-left">
-                        Images larger than 2MB will be automatically resized to prevent API errors.
+                  {!imageUrl ? (
+                    <div className="upload-area">
+                      {/* Hidden file input */}
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/jpeg,image/png,image/gif"
+                        className="hidden"
+                      />
+                      <UploadIcon className="h-12 w-12 sm:h-16 sm:w-16 text-blue-400 animate-pulse" />
+                      <p className="text-xl sm:text-2xl font-medium text-white">DROP IMAGE HERE</p>
+                      <Button 
+                        className="mt-2 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer flex items-center justify-center"
+                        onClick={handleFileButtonClick}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? 'Uploading...' : 'or click to browse files'}
+                      </Button>
+                      <p className="text-sm sm:text-base text-gray-400 mt-3 sm:mt-4">
+                        Supports: JPG, PNG, GIF (max 2MB)
                       </p>
+                      <div className="mt-2 sm:mt-3 text-sm sm:text-base text-amber-400 bg-amber-900 bg-opacity-30 p-2 sm:p-3 rounded-md flex items-start">
+                        <CircleAlert className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0 mt-0.5" />
+                        <p className="text-left">
+                          Images larger than 2MB will be automatically resized to prevent API errors.
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="uploaded-image-container">
+                      <h3 className="text-white mb-4">Uploaded Image:</h3>
+                      
+                      {/* Very simple image display */}
+                      <div className="border border-blue-500 p-2 mb-4">
+                        <img 
+                          src={imageUrl} 
+                          alt="Uploaded image" 
+                          className="mx-auto max-h-80"
+                          onError={(e) => {
+                            console.error("Image failed to load");
+                            setDebug(prev => `${prev}\nImage failed to load from URL: ${imageUrl}`);
+                            e.currentTarget.src = "https://via.placeholder.com/400x300?text=Image+Load+Error";
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="mt-4 flex justify-between">
+                        <Button
+                          variant="outline"
+                          className="text-gray-300 border-gray-700 hover:bg-gray-800"
+                          onClick={() => {
+                            setImageUrl(null);
+                            setTransformedImageUrl(null);
+                            setDebug(prev => `${prev}\nImage removed by user`);
+                          }}
+                        >
+                          Remove image
+                        </Button>
+                        <Button
+                          className="bg-blue-600 hover:bg-blue-500 text-white"
+                          onClick={handleFileButtonClick}
+                        >
+                          Upload different image
+                        </Button>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-blue-900 bg-opacity-20 rounded-md border border-blue-800 text-blue-200 text-sm">
+                        <p>Image uploaded successfully! Now enter a prompt below to transform it.</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-6 sm:mt-8">
                     <label htmlFor="prompt" className="block text-base sm:text-lg font-medium text-white mb-2">
@@ -316,6 +397,73 @@ export default function Home() {
               </div>
             </div>
           </section>
+
+          {/* Display transformation results if available */}
+          {transformedImageUrl && imageUrl && (
+            <section className="mt-16">
+              <h2 className="text-2xl font-bold text-center mb-8 text-white">Transformation Result</h2>
+              <div className="bg-gray-900 p-6 rounded-lg shadow-lg border border-gray-800">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-medium text-lg text-white mb-3">Original Image</h3>
+                    <div className="relative w-full h-64 bg-gray-800 rounded-md overflow-hidden">
+                      {imageUrl.startsWith('https://example.com') ? (
+                        <div className="flex items-center justify-center h-full bg-gray-800 text-white">
+                          <p className="text-center">Original Image</p>
+                        </div>
+                      ) : (
+                        <div className="w-full h-full relative">
+                          <img
+                            src={imageUrl}
+                            alt="Original image" 
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-lg text-white mb-3">Transformed Image</h3>
+                    <div className="relative w-full h-64 bg-gray-800 rounded-md overflow-hidden">
+                      {transformedImageUrl.startsWith('https://example.com') ? (
+                        <div className="flex items-center justify-center h-full bg-gray-800 text-white">
+                          <div className="text-center">
+                            <div className="bg-blue-600 rounded-full p-3 mx-auto mb-3">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+                                <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"></path>
+                                <path d="m14 7 3 3"></path>
+                              </svg>
+                            </div>
+                            <p className="text-lg font-medium">Transformation Complete!</p>
+                            <p className="text-sm text-gray-400">Using prompt: {prompt}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full h-full relative">
+                          <img
+                            src={transformedImageUrl}
+                            alt="Transformed image"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-center">
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-500 text-white"
+                    onClick={() => {
+                      // In a real app, this would download the image
+                      alert('Download functionality would be implemented here');
+                    }}
+                  >
+                    Download Transformed Image
+                  </Button>
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="mt-16">
             <h2 className="text-3xl font-bold text-center mb-8 text-white">How It Works</h2>
