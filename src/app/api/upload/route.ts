@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const image = formData.get('image') as File;
+    const image = formData.get('image');
     
     if (!image) {
       return NextResponse.json(
@@ -13,13 +12,10 @@ export async function POST(request: Request) {
       );
     }
     
-    // In development, simulate upload by returning a mock URL
-    // In production, you would upload to a storage service
-    const fileName = `${uuidv4()}.jpg`;
-    const imageUrl = `https://example.com/uploads/${fileName}`;
+    // Simulate upload by returning a mock URL
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const imageUrl = `https://example.com/uploads/${randomId}.jpg`;
     
-    // For development, return the original image as the URL
-    // In production, use a real storage service
     return NextResponse.json({ 
       success: true,
       imageUrl 
