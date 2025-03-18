@@ -12,10 +12,12 @@ export async function POST(request: Request) {
       );
     }
     
-    // Guaranteed working image URL - using placeholder.com instead of unsplash 
-    // to avoid any potential CORS or availability issues
+    // Instead of using an external placeholder service, use a relative URL
+    // to a local placeholder in the public directory
     const randomId = Math.floor(Math.random() * 1000);
-    const imageUrl = `https://via.placeholder.com/800x600?text=Image+${randomId}`;
+    
+    // Using a relative URL to a local placeholder image
+    const imageUrl = `/placeholder-${randomId % 3 + 1}.jpg`;
     
     console.log('Returning mock image URL:', imageUrl);
     
