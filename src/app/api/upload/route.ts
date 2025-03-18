@@ -12,6 +12,17 @@ export async function POST(request: Request) {
       );
     }
     
+    // Add server-side file size validation
+    if (image instanceof File) {
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      if (image.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: `File size exceeds the 5MB limit. File size: ${(image.size / (1024 * 1024)).toFixed(2)}MB` },
+          { status: 400 }
+        );
+      }
+    }
+    
     // Instead of using an external placeholder service, use a relative URL
     // to a local placeholder in the public directory
     const randomId = Math.floor(Math.random() * 1000);
