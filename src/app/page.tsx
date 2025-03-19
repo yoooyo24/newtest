@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 // Import the loading component
 import TransformationLoading from "@/components/ui/TransformationLoading";
+// Import the ErrorMessage component
+import ErrorMessage from "@/components/ErrorMessage";
 
 export default function Home() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -268,6 +270,14 @@ export default function Home() {
       {/* Add the loading overlay when transforming */}
       {isTransforming && <TransformationLoading progress={transformProgress} />}
 
+      {/* Display error message with new component */}
+      {error && (
+        <ErrorMessage
+          message={error}
+          onClose={() => setError(null)}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
         {/* Debug panel - add this for troubleshooting */}
         <div className="mb-8 p-4 bg-gray-800 rounded-md">
@@ -295,15 +305,7 @@ export default function Home() {
                   )}
                 </div>
                 <div className="p-4 sm:p-6">
-                  {/* Display error message if there is one */}
-                  {error && (
-                    <div className="mb-4 p-3 bg-red-900 bg-opacity-30 rounded-md border border-red-800 text-red-200 text-sm">
-                      <div className="flex items-start">
-                        <CircleAlert className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                        <p>{error}</p>
-                      </div>
-                    </div>
-                  )}
+                  {/* Remove the old error display - it's now shown globally at the top of the page */}
                   
                   {!imageUrl ? (
                     <div className="upload-area">
