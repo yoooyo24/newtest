@@ -17,6 +17,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [debug, setDebug] = useState<string>("");
   const [transformProgress, setTransformProgress] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
 
   // Add effect to log state changes
   useEffect(() => {
@@ -25,6 +26,26 @@ export default function Home() {
 
   // Enhanced upload handler with more debugging
   const handleImageUpload = async (file: File) => {
+    // Clear previous errors
+    setError(null);
+    
+    // Check file size (5MB limit)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      // Show error message
+      setError(`File size exceeds the 5MB limit. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB. Please choose a smaller file.`);
+      setDebug(prev => `${prev}\nFile size error: ${file.size} bytes exceeds limit of ${MAX_FILE_SIZE} bytes`);
+      return;
+    }
+    
+    // Check file type
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError(`Unsupported file format: ${file.type}. Please upload a JPG, PNG, or GIF image.`);
+      setDebug(prev => `${prev}\nFile type error: ${file.type} is not supported. Allowed types: ${ALLOWED_TYPES.join(', ')}`);
+      return;
+    }
+    
     setIsUploading(true);
     setDebug(`Starting upload of ${file.name} (${file.size} bytes)`);
     try {
@@ -53,24 +74,83 @@ export default function Home() {
         }, 100);
       } else {
         console.error('Upload failed:', data.error);
+        setError(data.error || 'Unknown error occurred');
         setDebug(prev => `${prev}\nUpload failed: ${data.error || 'Unknown error'}`);
-        alert('Failed to upload image: ' + (data.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error uploading image:', error);
+      setError('Error uploading image. Please try again.');
       setDebug(prev => `${prev}\nError: ${error}`);
-      alert('Error uploading image. Please try again.');
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Enhanced transform handler with progress indicator
+  // Enhanced helper function to validate prompts with better random text detection
+  const validatePrompt = (prompt: string): boolean => {
+    // Trim the prompt to remove extra spaces
+    const trimmedPrompt = prompt.trim();
+    
+    // Check minimum length
+    if (trimmedPrompt.length < 3) {
+      setError("Your prompt is too short. Please provide more details.");
+      return false;
+    }
+    
+    // Check for random character strings - improved patterns
+    // Pattern for repeated characters like "aaaaa" or "ggggg"
+    const repeatedCharsPattern = /(.)\1{3,}/;
+    if (repeatedCharsPattern.test(trimmedPrompt)) {
+      setError("Your prompt contains repeated characters. Please use meaningful words.");
+      return false;
+    }
+    
+    // Pattern for random letters with no vowels - catches "hgjhg", "dfkjh", etc.
+    const noVowelsPattern = /^[^aeiou]{4,}$/i;
+    if (noVowelsPattern.test(trimmedPrompt.replace(/\s+/g, ''))) {
+      setError("Your prompt appears to be random text. Please describe how you want to transform the image.");
+      return false;
+    }
+    
+    // Better word check - ensure the prompt contains at least one common word
+    const words = trimmedPrompt.toLowerCase().split(/\s+/).filter(word => word.length > 1);
+    if (words.length < 1) {
+      setError("Please include descriptive words in your prompt.");
+      return false;
+    }
+    
+    // Check for common English words (this is a simple check - can be expanded)
+    const commonWords = ["make", "convert", "transform", "change", "add", "create", "style", "look", "like", "apply", "effect", 
+                         "filter", "color", "enhance", "increase", "decrease", "adjust", "remove", "edit", "photo", "image",
+                         "picture", "art", "artistic", "vintage", "modern", "cartoon", "realistic", "painting", "drawing", "sketch"];
+    
+    // Check if the prompt contains at least one common word
+    const hasCommonWord = commonWords.some(word => 
+      words.some(promptWord => promptWord === word || promptWord.includes(word))
+    );
+    
+    if (!hasCommonWord) {
+      setError("Your prompt should include common editing terms like 'make', 'convert', 'style', etc.");
+      setDebug(prev => `${prev}\nPrompt validation failed: No common words found in "${trimmedPrompt}"`);
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Enhanced transform handler with prompt validation
   const handleTransform = async () => {
     if (!imageUrl || !prompt.trim()) return;
     
+    // Validate prompt before proceeding
+    if (!validatePrompt(prompt)) {
+      // Error is already set in the validation function
+      return;
+    }
+    
     setIsTransforming(true);
     setTransformProgress(0);
+    setError(null); // Clear previous errors
     
     // Start progress simulation
     const progressInterval = setInterval(() => {
@@ -90,16 +170,31 @@ export default function Home() {
       });
       
       const data = await response.json();
-      if (data.success && data.transformedImageUrl) {
+      
+      // Check if the response indicates an error
+      if (!response.ok || !data.success) {
+        // Get the error message from the response or use a default
+        const errorMessage = data.message || 'Failed to transform image. Please try again.';
+        
+        // Set the error to display to the user
+        setError(errorMessage);
+        
+        // Log more details for debugging
+        console.error('Transform API error:', data);
+        setDebug(prev => `${prev}\nAPI Error: ${JSON.stringify(data)}`);
+        
+        // Don't set the transformed image URL if there was an error
+        return;
+      }
+      
+      if (data.transformedImageUrl) {
         setTransformedImageUrl(data.transformedImageUrl);
         setTransformProgress(100);
-      } else {
-        console.error('Transformation failed:', data.error);
-        // Handle error
       }
     } catch (error) {
       console.error('Error transforming image:', error);
-      // Handle error
+      setError('Network error occurred. Please check your connection and try again.');
+      setDebug(prev => `${prev}\nNetwork Error: ${error}`);
     } finally {
       clearInterval(progressInterval);
       // Set a minimum display time for the loading screen for better UX
@@ -200,6 +295,16 @@ export default function Home() {
                   )}
                 </div>
                 <div className="p-4 sm:p-6">
+                  {/* Display error message if there is one */}
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-900 bg-opacity-30 rounded-md border border-red-800 text-red-200 text-sm">
+                      <div className="flex items-start">
+                        <CircleAlert className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                        <p>{error}</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   {!imageUrl ? (
                     <div className="upload-area">
                       {/* Hidden file input */}
@@ -220,12 +325,12 @@ export default function Home() {
                         {isUploading ? 'Uploading...' : 'or click to browse files'}
                       </Button>
                       <p className="text-sm sm:text-base text-gray-400 mt-3 sm:mt-4">
-                        Supports: JPG, PNG, GIF (max 2MB)
+                        Supports: JPG, PNG, GIF (max 5MB)
                       </p>
                       <div className="mt-2 sm:mt-3 text-sm sm:text-base text-amber-400 bg-amber-900 bg-opacity-30 p-2 sm:p-3 rounded-md flex items-start">
                         <CircleAlert className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0 mt-0.5" />
                         <p className="text-left">
-                          Images larger than 2MB will be automatically resized to prevent API errors.
+                          Images larger than 5MB will be automatically resized to prevent API errors.
                         </p>
                       </div>
                     </div>
@@ -500,7 +605,7 @@ export default function Home() {
                 <div className="step-number">1</div>
                 <h3 className="font-bold text-lg mb-3 text-white">Upload an image</h3>
                 <p className="text-gray-300 text-base">
-                  Select or drag & drop any image from your device. Images larger than 2MB will be automatically resized.
+                  Select or drag & drop any image from your device. Images larger than 5MB will be automatically resized.
                 </p>
               </div>
               <div className="bg-gray-900 p-6 rounded-lg shadow-lg border border-gray-800 text-center">
@@ -529,7 +634,7 @@ export default function Home() {
                 <div className="bg-gray-900 p-5 rounded-lg shadow-lg border border-gray-800">
                   <h3 className="font-medium text-lg text-blue-300 mb-2">Image Size Limits</h3>
                   <p className="text-base text-blue-100">
-                    Images larger than 2MB will be automatically resized to prevent API errors. For best results, use clear images under 2MB.
+                    Images larger than 5MB will be automatically resized to prevent API errors. For best results, use clear images under 5MB.
                   </p>
                 </div>
                 <div className="bg-gray-900 p-5 rounded-lg shadow-lg border border-gray-800">
@@ -542,6 +647,13 @@ export default function Home() {
                   <h3 className="font-medium text-lg text-blue-300 mb-2">Server Errors (500)</h3>
                   <p className="text-base text-blue-100">
                     If you encounter a 500 error, it's often due to temporary API issues. Try again later or with a different image.
+                  </p>
+                </div>
+                {/* Add a new panel for API errors */}
+                <div className="bg-gray-900 p-5 rounded-lg shadow-lg border border-gray-800">
+                  <h3 className="font-medium text-lg text-blue-300 mb-2">API Errors</h3>
+                  <p className="text-base text-blue-100">
+                    API errors may occur during transformation. These could be due to rate limits, content issues, or service availability. Try again or with different content.
                   </p>
                 </div>
               </div>

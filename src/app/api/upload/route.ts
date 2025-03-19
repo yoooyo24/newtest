@@ -12,12 +12,22 @@ export async function POST(request: Request) {
       );
     }
     
-    // Add server-side file size validation
+    // Add server-side file validation
     if (image instanceof File) {
+      // Size validation
       const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
       if (image.size > MAX_FILE_SIZE) {
         return NextResponse.json(
           { error: `File size exceeds the 5MB limit. File size: ${(image.size / (1024 * 1024)).toFixed(2)}MB` },
+          { status: 400 }
+        );
+      }
+      
+      // File type validation
+      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+      if (!ALLOWED_TYPES.includes(image.type)) {
+        return NextResponse.json(
+          { error: `Unsupported file format: ${image.type}. Please upload a JPG, PNG, or GIF image.` },
           { status: 400 }
         );
       }
